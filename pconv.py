@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 
-# Source: https://github.com/naoto0804/pytorch-inpainting-with-partial-conv/blob/master/net.py
+# Adapted from: https://github.com/naoto0804/pytorch-inpainting-with-partial-conv/blob/master/net.py
 class PartialConv(nn.Module):
     def __init__(
         self,
@@ -68,7 +68,7 @@ class PartialConv(nn.Module):
         out = [output, new_mask]
         return out
 
-
+# Adapted from: https://github.com/naoto0804/pytorch-inpainting-with-partial-conv/blob/master/net.py
 class PCBActiv(nn.Module):
     def __init__(
         self,
@@ -120,6 +120,7 @@ class PCBActiv(nn.Module):
             out[0] = self.norm(out[0])
         return out
 
+# Adapted from https://github.com/KumapowerLIU/PD-GAN/blob/main/models/blocks/pconvblocks.py
 class UnetSkipConnectionDBlock(nn.Module):
     def __init__(
         self,
@@ -156,7 +157,7 @@ class UnetSkipConnectionDBlock(nn.Module):
     def forward(self, x):
         return self.model(x)
     
-# Source: https://github.com/KumapowerLIU/PD-GAN/blob/main/models/network/pconv.py
+# Code is from https://github.com/KumapowerLIU/PD-GAN/blob/main/models/network/pconv.py
 class Encoder(nn.Module):
     def __init__(self, input_nc, ngf=64, res_num=4, norm_layer="instance"):
         super(Encoder, self).__init__()
@@ -195,7 +196,7 @@ class Encoder(nn.Module):
         out_7 = self.middle(out_6)
         return out_7, out_5, out_4, out_3, out_2, out_1
 
-
+# Code is from https://github.com/KumapowerLIU/PD-GAN/blob/main/models/network/pconv.py
 class Decoder(nn.Module):
     def __init__(self, output_nc, ngf=64, norm_layer=nn.BatchNorm2d):
         super(Decoder, self).__init__()
