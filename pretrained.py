@@ -7,6 +7,9 @@ class PretrainedModel:
     def __init__():
         pass
     
+    def load():
+        pass
+    
     def forward(broken_imgs):
         pass
 
