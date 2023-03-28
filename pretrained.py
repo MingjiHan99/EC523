@@ -4,14 +4,19 @@ import torch
 
 # Pretrained Model for PD-GAN Training
 class PretrainedModel:
-    def __init__(self):
-        pass
-    
-    def load(self, path):
-        pass
+    def __init__(self, encoder_path, decoder_path):
+        self.encoder = Encoder(input_nc=3, norm_layer="instance")
+        self.decoder = Decoder(output_nc=3, norm_layer="instance")
+        encoder_state = torch.load(encoder_path)
+        decoder_state = torch.load(decoder_path)
+        self.encoder.load_state_dict(encoder_state['net'])
+        self.decoder.load_state_dict(decoder_state['net'])
     
     def forward(self, broken_imgs):
-        pass
+        with torch.no_grad():
+            encoding = self.encoder.forward(broken_imgs)
+            output = self.decoder.forward(encoding)
+        return output
 
 # Code is from https://github.com/KumapowerLIU/PD-GAN/blob/main/models/network/pconv.py
 class Encoder(nn.Module):
@@ -87,12 +92,5 @@ class Decoder(nn.Module):
         return out
     
 if __name__ == "__main__":
-    encoder = Encoder(input_nc=3, norm_layer="instance")
-    decoder = Decoder(output_nc=3, norm_layer="instance")
-    encoder_state = torch.load('./Face/2_net_EN.pth')
-    print(encoder_state['net'].keys())
-    encoder.load_state_dict(encoder_state['net'])
-    
-    decoder_state = torch.load('./Face/2_net_DE.pth')
-    decoder.load_state_dict(decoder_state['net'])
-    
+    encoder_path = './Face/2_net_EN.pth'
+    decoder_path = './Face/2_net_DE.pth'    
