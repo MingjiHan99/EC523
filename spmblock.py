@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-class SPMSoftBlock(nn.Module):
+class SPDNormSoftBlock(nn.Module):
     def __init__(self):
         super(SPMSoftBlock, self).__init__()
         
@@ -8,7 +8,7 @@ class SPMSoftBlock(nn.Module):
         pass
     
 
-class SPMHardBlock(nn.Module):
+class SPDNormHardBlock(nn.Module):
     def __init__(self):
         super(SPMHardBlock, self).__init__()
         
@@ -16,7 +16,7 @@ class SPMHardBlock(nn.Module):
         pass
 
     
-class SPMResnetBlock(nn.Module):
+class SPDNormResnetBlock(nn.Module):
     def __init__(self):
         super(SPMResnetBlock, self).__init__()
         
