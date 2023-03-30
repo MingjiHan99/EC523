@@ -94,3 +94,8 @@ class Decoder(nn.Module):
 if __name__ == "__main__":
     encoder_path = './Face/2_net_EN.pth'
     decoder_path = './Face/2_net_DE.pth'    
+    pretrained_cnn = PretrainedModel('./Face/2_net_EN.pth', './Face/2_net_DE.pth')
+    epoch = 20
+    for i in range(0, 20):
+        pass
+    
