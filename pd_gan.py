@@ -45,6 +45,10 @@ class PDGANGenerator(nn.Module):
         out = F.tanh(out)
         return out
 
-class PDGANDiscriminator:
+class PDGANDiscriminator(nn.Module):
     def __init__(self):
+        self.discriminator0 = object()
+        self.discriminator1 = object()
+    
+    def forward(self, vec, img, mask):
         pass

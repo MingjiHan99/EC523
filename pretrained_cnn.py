@@ -18,7 +18,7 @@ class PretrainedModel:
             output = self.decoder.forward(encoding)
         return output
 
-# Code is from https://github.com/KumapowerLIU/PD-GAN/blob/main/models/network/pconv.py
+# Adapted from: https://github.com/KumapowerLIU/PD-GAN/blob/main/models/network/pconv.py
 class Encoder(nn.Module):
     def __init__(self, input_nc, ngf=64, res_num=4, norm_layer="instance"):
         super(Encoder, self).__init__()
