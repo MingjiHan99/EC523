@@ -13,38 +13,29 @@ import cv2
 
 
 class Dataset(data.Dataset):
-    def __init__(self, gt_file, config, mask_file=None):
+    def __init__(self, gt_file, is_train, mask_file=None):
         self.gt_image_files = self.load_file_list(gt_file)
 
         if len(self.gt_image_files) == 0:
             raise (RuntimeError("Found 0 images in the input files " + "\n"))
 
-        if config.isTrain is False:
+        if is_train is False:
             self.transform_cfg = {
                 "crop": False,
                 "flip": False,
-                "resize": config.test_image_size,
+                "resize": 256,
                 "random_load_mask": False,
             }
-            config.mask_type == "from_file" if mask_file is not None else config.mask_type
         else:
             self.transform_cfg = {
-                "crop": config.need_crop,
-                "flip": config.need_flip,
-                "resize": config.train_image_size,
-                "random_load_mask": True,
+                "crop": False,
+                "flip": False,
+                "resize": 256,
+                "random_load_mask": False,
             }
 
-        self.mask_type = config.mask_type
-        # generate random rectangle mask
-        if self.mask_type == "random_bbox":
-            self.mask_setting = config.DATA_RANDOM_BBOX_SETTING
-        # generate random free form mask
-        elif self.mask_type == "random_free_form":
-            self.mask_setting = config.DATA_RANDOM_FF_SETTING
-        # read masks from files
-        elif self.mask_type == "from_file":
-            self.mask_image_files = self.load_file_list(mask_file)
+        self.mask_type = "from_file"
+        self.mask_image_files = self.load_file_list(mask_file)
 
     def __getitem__(self, index):
         try:
