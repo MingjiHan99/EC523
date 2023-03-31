@@ -112,45 +112,6 @@ class VGG16(torch.nn.Module):
         }
         return out
 
-
-class StyleLoss(nn.Module):
-    r"""
-    Perceptual loss, VGG-based
-    https://arxiv.org/abs/1603.08155
-    https://github.com/dxyang/StyleTransfer/blob/master/utils.py
-    """
-
-    def __init__(self):
-        super(StyleLoss, self).__init__()
-        self.add_module("vgg", VGG16().cuda())
-        self.criterion = torch.nn.L1Loss()
-
-    def compute_gram(self, x):
-        b, ch, h, w = x.size()
-        f = x.view(b, ch, w * h)
-        f_T = f.transpose(1, 2)
-        G = f.bmm(f_T) / (h * w * ch)
-
-        return G
-
-    def __call__(self, x, y):
-        # Compute features
-        x_vgg, y_vgg = self.vgg(x), self.vgg(y)
-
-        # Compute loss
-        style_loss = 0.0
-        style_loss += self.criterion(
-            self.compute_gram(x_vgg["relu2_2"]), self.compute_gram(y_vgg["relu2_2"])
-        )
-        style_loss += self.criterion(
-            self.compute_gram(x_vgg["relu3_3"]), self.compute_gram(y_vgg["relu3_3"])
-        )
-        style_loss += self.criterion(
-            self.compute_gram(x_vgg["relu4_3"]), self.compute_gram(y_vgg["relu4_3"])
-        )
-        return style_loss
-
-
 class PerceptualLoss(nn.Module):
     r"""
     Perceptual loss, VGG-based
@@ -296,31 +257,4 @@ class Diversityloss(nn.Module):
         return diversity_loss
 
 
-def dialation_holes(hole_mask):
-    b, ch, h, w = hole_mask.shape
-    dilation_conv = nn.Conv2d(ch, ch, 3, padding=1, bias=False).to(hole_mask)
-    torch.nn.init.constant_(dilation_conv.weight, 1.0)
-    with torch.no_grad():
-        output_mask = dilation_conv(hole_mask)
-    updated_holes = output_mask != 0
-    return updated_holes.float()
 
-
-def TVloss(image, mask, method):
-    hole_mask = 1 - mask
-    dilated_holes = dialation_holes(hole_mask)
-    colomns_in_Pset = dilated_holes[:, :, :, 1:] * dilated_holes[:, :, :, :-1]
-    rows_in_Pset = dilated_holes[:, :, 1:, :] * dilated_holes[:, :, :-1:, :]
-    if method == "sum":
-        loss = torch.sum(
-            torch.abs(colomns_in_Pset * (image[:, :, :, 1:] - image[:, :, :, :-1]))
-        ) + torch.sum(
-            torch.abs(rows_in_Pset * (image[:, :, :1, :] - image[:, :, -1:, :]))
-        )
-    else:
-        loss = torch.mean(
-            torch.abs(colomns_in_Pset * (image[:, :, :, 1:] - image[:, :, :, :-1]))
-        ) + torch.mean(
-            torch.abs(rows_in_Pset * (image[:, :, :1, :] - image[:, :, -1:, :]))
-        )
-    return loss

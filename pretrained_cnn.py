@@ -11,11 +11,13 @@ class PretrainedModel:
         decoder_state = torch.load(decoder_path)
         self.encoder.load_state_dict(encoder_state['net'])
         self.decoder.load_state_dict(decoder_state['net'])
-    
+        self.encoder = self.encoder.cuda()   
+        self.decoder = self.decoder.cuda()
+        
     def forward(self, broken_imgs):
         with torch.no_grad():
-            encoding = self.encoder.forward(broken_imgs)
-            output = self.decoder.forward(encoding)
+            out_7, out_5, out_4, out_3, out_2, out_1 = self.encoder.forward(broken_imgs)
+            output = self.decoder.forward(out_1, out_2, out_3, out_4, out_5, out_7)
         return output
 
 # Adapted from: https://github.com/KumapowerLIU/PD-GAN/blob/main/models/network/pconv.py
