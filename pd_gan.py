@@ -51,7 +51,7 @@ class PDGANDiscriminator(nn.Module):
     
     def forward(self, x):
         sampled_x = F.avg_pool2d(x, kernel_size=3, stride=2, padding=[1, 1], count_include_pad=False)
-        return [self.discriminator0(x), self.discriminator1(sampled_x)]
+        return [[self.discriminator0(x)], [self.discriminator1(sampled_x)]]
 
     
 # Adapted from: https://github.com/yuan-yin/UNISST and
@@ -101,7 +101,7 @@ class NLayerDiscriminator(nn.Module):
             intermediate_output = submodel(results[-1])
             results.append(intermediate_output)
 
-        return results[1:]
+        return results[-1]
 
 # Adapted from: https://github.com/yuan-yin/UNISST and 
 # https://github.com/KumapowerLIU/PD-GAN/blob/main/models/network/Discriminator.py

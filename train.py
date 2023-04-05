@@ -139,4 +139,4 @@ if __name__ == "__main__":
         # Store model and test model
         torch.save(generator.state_dict(), './model/generator.pth')
         torch.save(discriminator.state_dict(), './model/discriminator.pth')
-        
+       # test_gan_model(generator, pretrained_cnn, img, mask)
