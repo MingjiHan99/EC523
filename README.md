@@ -1,3 +1,9 @@
+### PD-GAN
+
+EC523 Project
+
+Image Impainting using PD-GAN
+
 ### Acknowledgement
 
 The code and model of Pretrained Encoder-Decoder for building PD-GAN are adapted from the following sources:
