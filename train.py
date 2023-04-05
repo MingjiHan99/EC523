@@ -8,7 +8,7 @@ from pd_gan import PDGANGenerator, PDGANDiscriminator
 from PIL import Image
 from pretrained_loss import GANLoss, Diversityloss, PerceptualLoss
 import cv2
-import tqdm
+from tqdm import tqdm
 
 def save_img(tensor, name):
     npimg = np.transpose(tensor, (1,2,0)) + 0.5
@@ -47,6 +47,7 @@ def test_gan_model(generator, pretrained_cnn, imgs, masks):
         save_img(img, '{}.png'.format(i))
    
 if __name__ == "__main__":
+    torch.autograd.set_detect_anomaly(True)
     # Define dataset
     dataset = Dataset('./data/celeba/', True, './data/mask/testing_mask_dataset/')
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=True, num_workers=1)
@@ -58,9 +59,12 @@ if __name__ == "__main__":
     discriminator = PDGANDiscriminator()
     discriminator = discriminator.cuda()
     # Losses
-    gan_loss = GANLoss()
+    gan_loss = GANLoss('hinge')
+    gan_loss = gan_loss.cuda()
     preceptual_loss = PerceptualLoss()
+    preceptual_loss = preceptual_loss.cuda()
     preceptual_divsersity_loss = Diversityloss()
+    preceptual_divsersity_loss = preceptual_divsersity_loss.cuda()
     # Training Parameters
     epoch = 20
     lr = 0.001
@@ -86,22 +90,13 @@ if __name__ == "__main__":
             # Get the preliminary fixed images from pretrained model
             raw_fix_imgs = pretrained_cnn.forward([imgs, masks])
             # Train GAN
-            # Generate fake images
+    
             z0 = torch.randn((imgs.shape[0], 256)).cuda()
             z1 = torch.randn((imgs.shape[0], 256)).cuda()
             fake0 = generator(z0, raw_fix_imgs, masks)
             fake1 = generator(z1, raw_fix_imgs, masks)
             
-            # Train discriminator
-            
-            # Fix generator and clean gradients
-            for p in generator.parameters():
-                p.requires_grad = False
-            for p in discriminator.parameters():
-                p.requires_grad = True
-            discriminator_optimizer.zero_grad()
-            # Compute loss
-            
+             
             fake0_dis_input = torch.cat([hole_mask, fake0], dim=1)
             fake1_dis_input = torch.cat([hole_mask, fake1], dim=1)
             real_dis_input = torch.cat([hole_mask, imgs], dim=1)
@@ -109,9 +104,18 @@ if __name__ == "__main__":
             pred_fake_0 = discriminator(fake0_dis_input)
             pred_fake_1 = discriminator(fake0_dis_input)
             pred_real = discriminator(real_dis_input)
+    
+            # Fix generator and clean gradients
+            for p in generator.parameters():
+                p.requires_grad = False
+            for p in discriminator.parameters():
+                p.requires_grad = True
+            discriminator_optimizer.zero_grad()
+            # Compute loss
             loss_d = gan_loss(pred_fake_0, False, for_discriminator=True) + gan_loss(pred_fake_1, False, for_discriminator=True) + gan_loss(pred_real, True, for_discriminator=True)
             
-            loss_d.backward()
+            
+            loss_d.backward(retain_graph=True)
             discriminator_optimizer.step()
             
             # Train generator
@@ -121,10 +125,9 @@ if __name__ == "__main__":
             for p in discriminator.parameters():
                 p.requires_grad = False
             generator_optimizer.zero_grad()
-            # Compute loss
-            
             # GAN Loss
-            loss_g = gan_loss(pred_fake_0, False, for_discriminator=False) + gan_loss(pred_fake_1, False, for_discriminator=False) + gan_loss(pred_real, True, for_discriminator=False)
+            loss_g = gan_loss(pred_fake_0, target_is_real=True, for_discriminator=False) \
+                    + gan_loss(pred_fake_1,  target_is_real=True, for_discriminator=False)
             
             # Perceptual Loss
             loss_g = loss_g + preceptual_loss(fake0, fake1)
@@ -134,6 +137,7 @@ if __name__ == "__main__":
             
             loss_g.backward()
             generator_optimizer.step()
+            tqdm.write(f"Generator loss: {loss_g.item()} {loss_d.item()}")
             
             
         # Store model and test model

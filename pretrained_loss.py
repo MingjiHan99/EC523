@@ -193,9 +193,12 @@ class GANLoss(nn.Module):
         if self.zero_tensor is None:
             self.zero_tensor = self.Tensor(1).fill_(0)
             self.zero_tensor.requires_grad_(False)
+        if torch.cuda.is_available():
+            return self.zero_tensor.expand_as(input).cuda()
         return self.zero_tensor.expand_as(input)
 
     def loss(self, input, target_is_real, for_discriminator=True):
+       
         if self.gan_mode == "original":  # cross entropy loss
             target_tensor = self.get_target_tensor(input, target_is_real)
             loss = F.binary_cross_entropy_with_logits(input, target_tensor)
