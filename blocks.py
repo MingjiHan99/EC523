@@ -160,7 +160,6 @@ class UnetSkipConnectionDBlock(nn.Module):
         )
         if norm_layer == "instance":
             upnorm = nn.InstanceNorm2d(outer_nc, affine=True)
-            print('1')
         elif norm_layer == "batch":
             upnorm = nn.BatchNorm2d(outer_nc, affine=True)
         else:

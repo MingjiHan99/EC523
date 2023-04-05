@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.functional as F
-from spdblock import SPDNormResnetBlock
+from SPDNorm import SPDNormResnetBlock
 import numpy as np
 
 class PDGANGenerator(nn.Module):
@@ -9,17 +9,17 @@ class PDGANGenerator(nn.Module):
     def __init__(self):
         super().__init__() 
         self.layer0 = nn.Linear(256, 16 * 64 * 4 * 4)
-        self.layer1 = SPDNormResnetBlock()
+        self.layer1 = SPDNormResnetBlock(16 * 64, 16 * 64, )
         self.layer2 = nn.ConvTranspose2d(16 * 64, 16 * 64, kernel_size=4, stride=2, padding=1)
-        self.layer3= SPDNormResnetBlock()
+        self.layer3= SPDNormResnetBlock(16 * 64, 16 * 64, )
         self.layer4 = nn.ConvTranspose2d(16 * 64, 16 * 64, kernel_size=4, stride=2, padding=1)
-        self.layer5 = SPDNormResnetBlock()
+        self.layer5 = SPDNormResnetBlock(8 * 64, 8 * 64, )
         self.layer6 = nn.ConvTranspose2d(8 * 64, 8 * 64, kernel_size=4, stride=2, padding=1)
-        self.layer7 = SPDNormResnetBlock()
+        self.layer7 = SPDNormResnetBlock(4 * 64, 4 * 64, )
         self.layer8 = nn.ConvTranspose2d(4 * 64, 4 * 64, kernel_size=4, stride=2, padding=1)
-        self.layer9 = SPDNormResnetBlock()
+        self.layer9 = SPDNormResnetBlock(4 * 64, 2 * 64, )
         self.layer10 = nn.ConvTranspose2d(4 * 64, 2 * 64, kernel_size=4, stride=2, padding=1)
-        self.layer11 = SPDNormResnetBlock()
+        self.layer11 = SPDNormResnetBlock(2 * 64, 64)
         self.layer12 = nn.ConvTranspose2d(2 * 64, 64, kernel_size=4, stride=2, padding=1)
         self.layer13 = nn.Conv2d(64, 4, 4, padding=1)
         
