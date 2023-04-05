@@ -37,25 +37,42 @@ def test_pre_train_model(dataset):
     save_img(result, 'result.png')
     
 # Img and mask are in pytorch tensor format
-def test_gan_model(generator, pretrained_cnn, imgs, masks):
-    result = pretrained_cnn([imgs, masks])
+def test_gan_model(generator, pretrained_cnn, imgs, masks, epoch):
+    result = pretrained_cnn.forward([imgs, masks])
     z = torch.randn((imgs.shape[0], 256)).cuda()
-    fake = generator(z, result, masks)
-    b  = fake.shape[0]
-    for i in range(b):
-        img = fake[i].cpu().detach().numpy()
-        save_img(img, '{}.png'.format(i))
+    with torch.no_grad():
+        fake = generator(z, result, masks)
+        b  = fake.shape[0]
+        for i in range(b):
+            
+            img = fake[i].cpu().detach().numpy()
+            save_img(result[i].cpu().detach().numpy(), './log/input_{}_{}.png'.format(epoch, i))
+            save_img(img, './log/{}_{}.png'.format(epoch, i))
    
 if __name__ == "__main__":
-    torch.autograd.set_detect_anomaly(True)
     # Define dataset
     dataset = Dataset('./data/celeba/', True, './data/mask/testing_mask_dataset/')
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=True, num_workers=1)
+    img_samples = []
+    mask_samples = []
+    for i in range(8):
+        img, mask = dataset[i]
+        img_samples.append(img.unsqueeze(0))
+        mask_samples.append(mask.unsqueeze(0))
+        
+    img_samples = torch.cat(img_samples, dim = 0)
+    mask_samples = torch.cat(mask_samples, dim = 0)
+
+    mask_samples = 1 - mask_samples
+    mask_samples = mask_samples.repeat(1, 3, 1, 1)
+    img_samples = img_samples * mask_samples
+    
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=True, num_workers=12)
     # Define pretrained model
     pretrained_cnn = PretrainedModel('./Face/2_net_EN.pth', './Face/2_net_DE.pth')
     # Define PDGAN
     generator = PDGANGenerator()
     generator = generator.cuda()
+
     discriminator = PDGANDiscriminator()
     discriminator = discriminator.cuda()
     # Losses
@@ -71,7 +88,6 @@ if __name__ == "__main__":
     # Optimizer
     generator_optimizer = torch.optim.Adam(generator.parameters(), lr=lr, betas=(0.0, 0.999))
     discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=lr, betas=(0.0, 0.999))
-    
     
     for i in range(epoch):
         for imgs, masks in tqdm(dataloader):
@@ -96,21 +112,25 @@ if __name__ == "__main__":
             fake0 = generator(z0, raw_fix_imgs, masks)
             fake1 = generator(z1, raw_fix_imgs, masks)
             
-             
-            fake0_dis_input = torch.cat([hole_mask, fake0], dim=1)
-            fake1_dis_input = torch.cat([hole_mask, fake1], dim=1)
-            real_dis_input = torch.cat([hole_mask, imgs], dim=1)
             
-            pred_fake_0 = discriminator(fake0_dis_input)
-            pred_fake_1 = discriminator(fake0_dis_input)
-            pred_real = discriminator(real_dis_input)
-    
             # Fix generator and clean gradients
             for p in generator.parameters():
                 p.requires_grad = False
             for p in discriminator.parameters():
                 p.requires_grad = True
+            
             discriminator_optimizer.zero_grad()
+            dis_fake0 = fake0.detach()
+            dis_fake1 = fake1.detach()
+            dis_fake0_dis_input = torch.cat([hole_mask, dis_fake0], dim=1)
+            dis_fake1_dis_input = torch.cat([hole_mask, dis_fake1], dim=1)
+            real_dis_input = torch.cat([hole_mask, imgs], dim=1)
+            
+            pred_fake_0 = discriminator(dis_fake0_dis_input)
+            pred_fake_1 = discriminator(dis_fake1_dis_input)
+            pred_real = discriminator(real_dis_input)
+    
+          
             # Compute loss
             loss_d = gan_loss(pred_fake_0, False, for_discriminator=True) + gan_loss(pred_fake_1, False, for_discriminator=True) + gan_loss(pred_real, True, for_discriminator=True)
             
@@ -125,9 +145,13 @@ if __name__ == "__main__":
             for p in discriminator.parameters():
                 p.requires_grad = False
             generator_optimizer.zero_grad()
+            gen_fake0_dis_input = torch.cat([hole_mask, fake0], dim=1)
+            gen_fake1_dis_input = torch.cat([hole_mask, fake1], dim=1)
+            gen_pred_fake_0 = discriminator(gen_fake0_dis_input)
+            gen_pred_fake_1 = discriminator(gen_fake1_dis_input)
             # GAN Loss
-            loss_g = gan_loss(pred_fake_0, target_is_real=True, for_discriminator=False) \
-                    + gan_loss(pred_fake_1,  target_is_real=True, for_discriminator=False)
+            loss_g = gan_loss(gen_pred_fake_0, target_is_real=True, for_discriminator=False) \
+                    + gan_loss(gen_pred_fake_1,  target_is_real=True, for_discriminator=False)
             
             # Perceptual Loss
             loss_g = loss_g + preceptual_loss(fake0, fake1)
@@ -143,4 +167,4 @@ if __name__ == "__main__":
         # Store model and test model
         torch.save(generator.state_dict(), './model/generator.pth')
         torch.save(discriminator.state_dict(), './model/discriminator.pth')
-       # test_gan_model(generator, pretrained_cnn, img, mask)
+        test_gan_model(generator, pretrained_cnn, img_samples.cuda(), mask_samples.cuda(), i)

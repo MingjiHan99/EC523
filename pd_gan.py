@@ -33,8 +33,8 @@ class PDGANGenerator(nn.Module):
         self.layer13 = nn.Conv2d(64, 3, 3, padding=1)
         
     def forward(self, x, img, mask):
-        act = self.layer0(x)
-        out = act.view(-1, 16 * 64, 4, 4)
+        x = self.layer0(x)
+        out = x.view(-1, 16 * 64, 4, 4)
         in_mask = mask[:, 0, :, :].unsqueeze(1)
         out = self.layer1(out, img, in_mask)
         out = self.layer2(out)
