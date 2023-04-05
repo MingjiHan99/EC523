@@ -2,3 +2,8 @@ __pycache__
 model
 *.pth
 *.zip
+data
+Face
+Paris
+Places2
+result

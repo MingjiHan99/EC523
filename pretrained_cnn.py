@@ -11,14 +11,16 @@ class PretrainedModel:
         decoder_state = torch.load(decoder_path)
         self.encoder.load_state_dict(encoder_state['net'])
         self.decoder.load_state_dict(decoder_state['net'])
-    
+        self.encoder = self.encoder.cuda()   
+        self.decoder = self.decoder.cuda()
+        
     def forward(self, broken_imgs):
         with torch.no_grad():
-            encoding = self.encoder.forward(broken_imgs)
-            output = self.decoder.forward(encoding)
+            out_7, out_5, out_4, out_3, out_2, out_1 = self.encoder.forward(broken_imgs)
+            output = self.decoder.forward(out_1, out_2, out_3, out_4, out_5, out_7)
         return output
 
-# Code is from https://github.com/KumapowerLIU/PD-GAN/blob/main/models/network/pconv.py
+# Adapted from: https://github.com/KumapowerLIU/PD-GAN/blob/main/models/network/pconv.py
 class Encoder(nn.Module):
     def __init__(self, input_nc, ngf=64, res_num=4, norm_layer="instance"):
         super(Encoder, self).__init__()
@@ -94,3 +96,8 @@ class Decoder(nn.Module):
 if __name__ == "__main__":
     encoder_path = './Face/2_net_EN.pth'
     decoder_path = './Face/2_net_DE.pth'    
+    pretrained_cnn = PretrainedModel('./Face/2_net_EN.pth', './Face/2_net_DE.pth')
+    epoch = 20
+    for i in range(0, 20):
+        pass
+    
