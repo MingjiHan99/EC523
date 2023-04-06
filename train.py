@@ -14,6 +14,12 @@ def save_img(tensor, name):
     npimg = np.transpose(tensor, (1,2,0)) + 0.5
     plt.imshow(npimg)
     plt.savefig(name)
+    
+def save_img_tanh(tensor, name):
+    npimg = (np.transpose(tensor, (1,2,0)) + 1.0)  / 2.0 * 255
+    npimg =  np.minimum(np.maximum(npimg, 0), 255).astype(np.uint8)
+    plt.imshow(npimg)
+    plt.savefig(name)
 
 def test_pre_train_model(dataset):
     img, mask = dataset[999]
@@ -44,17 +50,18 @@ def test_gan_model(generator, pretrained_cnn, imgs, masks, epoch):
         fake = generator(z, result, masks)
         b  = fake.shape[0]
         for i in range(b):
-            
-            img = fake[i].cpu().detach().numpy()
-            save_img(result[i].cpu().detach().numpy(), './log/input_{}_{}.png'.format(epoch, i))
-            save_img(img, './log/{}_{}.png'.format(epoch, i))
+          #  
+         #   save_img(result[i].cpu().detach().numpy(), './log/input_{}_{}.png'.format(epoch, i))
+            img = fake[i].cpu().detach().numpy() 
+            concat = fake[i] * masks[i] + imgs[i] * (1 - masks[i])
+            save_img_tanh(img, './log/{}_{}.png'.format(epoch, i))
    
 if __name__ == "__main__":
     # Define dataset
-    dataset = Dataset('./data/celeba/', True, './data/mask/testing_mask_dataset/')
+    dataset = Dataset('./data/celeba_small/', True, './data/mask/testing_mask_dataset/')
     img_samples = []
     mask_samples = []
-    for i in range(8):
+    for i in range(4):
         img, mask = dataset[i]
         img_samples.append(img.unsqueeze(0))
         mask_samples.append(mask.unsqueeze(0))
@@ -83,14 +90,15 @@ if __name__ == "__main__":
     preceptual_divsersity_loss = Diversityloss()
     preceptual_divsersity_loss = preceptual_divsersity_loss.cuda()
     # Training Parameters
-    epoch = 20
+    epoch = 100
     lr = 0.001
     # Optimizer
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=lr, betas=(0.0, 0.999))
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=lr, betas=(0.0, 0.999))
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0005, betas=(0.0, 0.999))
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.002, betas=(0.0, 0.999))
     
     for i in range(epoch):
-        for imgs, masks in tqdm(dataloader):
+        bar = tqdm(dataloader)
+        for imgs, masks in bar:
             # Get the input images and their corresponding masks
             imgs = imgs.cuda()
             masks = masks.cuda()
@@ -152,16 +160,17 @@ if __name__ == "__main__":
             # GAN Loss
             loss_g = gan_loss(gen_pred_fake_0, target_is_real=True, for_discriminator=False) \
                     + gan_loss(gen_pred_fake_1,  target_is_real=True, for_discriminator=False)
-            
+            complete_img_0 = fake0 * hole_mask + original_imgs * masks
+            complete_img_1 = fake1 * hole_mask + original_imgs * masks
             # Perceptual Loss
-            loss_g = loss_g + preceptual_loss(fake0, fake1)
+            loss_g = loss_g + preceptual_loss(complete_img_0, complete_img_1)
             
             # Perceptual Diversity Loss
-            loss_g = loss_g + preceptual_divsersity_loss(fake0, fake1)
+            loss_g = loss_g + 1 / (preceptual_divsersity_loss(fake0 * hole_mask, fake1 * hole_mask) + 1e-5)
             
             loss_g.backward()
             generator_optimizer.step()
-            tqdm.write(f"Generator loss: {loss_g.item()} {loss_d.item()}")
+            bar.set_postfix(G_Loss=loss_g.item(), D_Loss=loss_d.item())
             
             
         # Store model and test model
