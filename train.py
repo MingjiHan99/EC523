@@ -62,7 +62,7 @@ if __name__ == "__main__":
     mask_path = './data/mask/testing_mask_dataset/'
     encoder_path = './Face/2_net_EN.pth'
     decoder_path = './Face/2_net_DE.pth'
-    dataset = Dataset('./data/celeba_small/', True, './data/mask/testing_mask_dataset/')
+    dataset = Dataset(dataset_path, True, mask_path)
     img_samples = []
     mask_samples = []
     for i in range(4):
