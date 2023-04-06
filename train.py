@@ -66,7 +66,7 @@ if __name__ == "__main__":
     img_samples = []
     mask_samples = []
     for i in range(4):
-        img, mask = dataset[i + 10]
+        img, mask = dataset[i + 500]
         img_samples.append(img.unsqueeze(0))
         mask_samples.append(mask.unsqueeze(0))
         
@@ -143,11 +143,8 @@ if __name__ == "__main__":
             pred_fake_0 = discriminator(dis_fake0_dis_input)
             pred_fake_1 = discriminator(dis_fake1_dis_input)
             pred_real = discriminator(real_dis_input)
-    
-          
             # Compute loss
             loss_d = gan_loss(pred_fake_0, False, for_discriminator=True) + gan_loss(pred_fake_1, False, for_discriminator=True) + gan_loss(pred_real, True, for_discriminator=True)
-            
             
             loss_d.backward(retain_graph=True)
             discriminator_optimizer.step()
@@ -165,12 +162,12 @@ if __name__ == "__main__":
             gen_pred_fake_1 = discriminator(gen_fake1_dis_input)
             # GAN Loss
             loss_g = gan_loss(gen_pred_fake_0, target_is_real=True, for_discriminator=False) \
-                    + gan_loss(gen_pred_fake_1,  target_is_real=True, for_discriminator=False)
+                    + gan_loss(gen_pred_fake_1, target_is_real=True, for_discriminator=False)
             # Perceptual Loss
-            loss_g = loss_g + 5.0 * preceptual_loss(fake0, original_imgs) \
-                            + 5.0 * preceptual_loss(fake1, original_imgs)
+            loss_g = loss_g + 10.0 * preceptual_loss(fake0, original_imgs) \
+                            + 10.0 * preceptual_loss(fake1, original_imgs)
             # Perceptual Diversity Loss
-            loss_g = loss_g + 5.0 / (preceptual_divsersity_loss(fake0 * hole_mask, fake1 * hole_mask) + 1 * 1e-5)
+            loss_g = loss_g + 1.0 / (preceptual_divsersity_loss(fake0 * hole_mask, fake1 * hole_mask) + 1 * 1e-5)
             loss_g = loss_g / 3.0
             loss_g.backward()
             generator_optimizer.step()
