@@ -41,7 +41,7 @@ class Dataset(data.Dataset):
         try:
             item = self.load_item(index)
         except:
-            print("loading error: " + self.gt_image_files[index])
+          #  print("loading error: " + self.gt_image_files[index])
             item = self.load_item(0)
         return item
 
