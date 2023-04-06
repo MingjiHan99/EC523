@@ -9,7 +9,7 @@ from PIL import Image
 from pretrained_loss import GANLoss, Diversityloss, PerceptualLoss
 import cv2
 from tqdm import tqdm
-
+from torch.nn import init
 def save_img(tensor, name):
     npimg = np.transpose(tensor, (1,2,0)) + 0.5
     plt.imshow(npimg)
@@ -41,6 +41,11 @@ def test_pre_train_model(dataset):
     result = result.cpu().numpy()
     
     save_img(result, 'result.png')
+    
+def init_func(m):
+    classname = m.__class__.__name__
+    if hasattr(m, "weight") and ("Conv" in classname or "Linear" in classname):
+        init.normal(m.weight.data, 0.0, 0.02)
     
 # Img and mask are in pytorch tensor format
 def test_gan_model(generator, pretrained_cnn, imgs, masks, epoch):
@@ -85,9 +90,10 @@ if __name__ == "__main__":
     # Define PDGAN
     generator = PDGANGenerator()
     generator = generator.cuda()
-
+    generator.apply(init_func)
     discriminator = PDGANDiscriminator()
     discriminator = discriminator.cuda()
+    discriminator.apply(init_func)
     # Losses
     gan_loss = GANLoss('hinge')
     gan_loss = gan_loss.cuda()
@@ -99,8 +105,8 @@ if __name__ == "__main__":
     epoch = 100
     lr = 0.001
     # Optimizer
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0005, betas=(0.9, 0.999))
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.002, betas=(0.9, 0.999))
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0005, betas=(0.5, 0.999))
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.002, betas=(0.5, 0.999))
     
     for i in range(epoch):
         bar = tqdm(dataloader)
@@ -164,8 +170,8 @@ if __name__ == "__main__":
             loss_g = gan_loss(gen_pred_fake_0, target_is_real=True, for_discriminator=False) \
                     + gan_loss(gen_pred_fake_1, target_is_real=True, for_discriminator=False)
             # Perceptual Loss
-            loss_g = loss_g + 10.0 * preceptual_loss(fake0, original_imgs) \
-                            + 10.0 * preceptual_loss(fake1, original_imgs)
+            loss_g = loss_g + (10.0 * preceptual_loss(fake0, original_imgs) \
+                            + 10.0 * preceptual_loss(fake1, original_imgs)) 
             # Perceptual Diversity Loss
             loss_g = loss_g + 1.0 / (preceptual_divsersity_loss(fake0 * hole_mask, fake1 * hole_mask) + 1 * 1e-5)
             loss_g = loss_g / 3.0
