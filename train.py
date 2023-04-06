@@ -93,8 +93,8 @@ if __name__ == "__main__":
     epoch = 100
     lr = 0.001
     # Optimizer
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0005, betas=(0.0, 0.999))
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.002, betas=(0.0, 0.999))
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0005, betas=(0.9, 0.999))
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.002, betas=(0.9, 0.999))
     
     for i in range(epoch):
         bar = tqdm(dataloader)
@@ -114,7 +114,7 @@ if __name__ == "__main__":
             # Get the preliminary fixed images from pretrained model
             raw_fix_imgs = pretrained_cnn.forward([imgs, masks])
             # Train GAN
-    
+            raw_fix_imgs = raw_fix_imgs.detach()
             z0 = torch.randn((imgs.shape[0], 256)).cuda()
             z1 = torch.randn((imgs.shape[0], 256)).cuda()
             fake0 = generator(z0, raw_fix_imgs, masks)
@@ -160,14 +160,12 @@ if __name__ == "__main__":
             # GAN Loss
             loss_g = gan_loss(gen_pred_fake_0, target_is_real=True, for_discriminator=False) \
                     + gan_loss(gen_pred_fake_1,  target_is_real=True, for_discriminator=False)
-            complete_img_0 = fake0 * hole_mask + original_imgs * masks
-            complete_img_1 = fake1 * hole_mask + original_imgs * masks
             # Perceptual Loss
-            loss_g = loss_g + preceptual_loss(complete_img_0, complete_img_1)
-            
+            loss_g = loss_g + 10.0 * preceptual_loss(fake0, original_imgs) \
+                            + 10.0 * preceptual_loss(fake1, original_imgs)
             # Perceptual Diversity Loss
-            loss_g = loss_g + 1 / (preceptual_divsersity_loss(fake0 * hole_mask, fake1 * hole_mask) + 1e-5)
-            
+            loss_g = loss_g + 1.0 / (preceptual_divsersity_loss(fake0 * hole_mask, fake1 * hole_mask) + 1 * 1e-5)
+            loss_g = loss_g / 3.0
             loss_g.backward()
             generator_optimizer.step()
             bar.set_postfix(G_Loss=loss_g.item(), D_Loss=loss_d.item())
