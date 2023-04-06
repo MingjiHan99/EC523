@@ -58,11 +58,15 @@ def test_gan_model(generator, pretrained_cnn, imgs, masks, epoch):
    
 if __name__ == "__main__":
     # Define dataset
+    dataset_path = './data/celeba_small/'
+    mask_path = './data/mask/testing_mask_dataset/'
+    encoder_path = './Face/2_net_EN.pth'
+    decoder_path = './Face/2_net_DE.pth'
     dataset = Dataset('./data/celeba_small/', True, './data/mask/testing_mask_dataset/')
     img_samples = []
     mask_samples = []
     for i in range(4):
-        img, mask = dataset[i]
+        img, mask = dataset[i + 123]
         img_samples.append(img.unsqueeze(0))
         mask_samples.append(mask.unsqueeze(0))
         
@@ -73,8 +77,8 @@ if __name__ == "__main__":
     mask_samples = mask_samples.repeat(1, 3, 1, 1)
     img_samples = img_samples * mask_samples
     for i in range(4):
-        save_img(img_samples[i].cpu().detach().numpy(), './log/input_{}.png'.format(i))
-    '''
+        save_img(img_samples[i].numpy(), './log/input_{}.png'.format(i))
+    
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=True, num_workers=12)
     # Define pretrained model
     pretrained_cnn = PretrainedModel('./Face/2_net_EN.pth', './Face/2_net_DE.pth')
@@ -177,4 +181,3 @@ if __name__ == "__main__":
         torch.save(generator.state_dict(), './model/generator.pth')
         torch.save(discriminator.state_dict(), './model/discriminator.pth')
         test_gan_model(generator, pretrained_cnn, img_samples.cuda(), mask_samples.cuda(), i)
-        '''
