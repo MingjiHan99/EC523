@@ -58,11 +58,15 @@ def test_gan_model(generator, pretrained_cnn, imgs, masks, epoch):
    
 if __name__ == "__main__":
     # Define dataset
-    dataset = Dataset('./data/celeba_small/', True, './data/mask/testing_mask_dataset/')
+    dataset_path = './data/celeba_small/'
+    mask_path = './data/mask/testing_mask_dataset/'
+    encoder_path = './Face/2_net_EN.pth'
+    decoder_path = './Face/2_net_DE.pth'
+    dataset = Dataset(dataset_path, True, mask_path)
     img_samples = []
     mask_samples = []
     for i in range(4):
-        img, mask = dataset[i]
+        img, mask = dataset[i + 500]
         img_samples.append(img.unsqueeze(0))
         mask_samples.append(mask.unsqueeze(0))
         
@@ -72,6 +76,8 @@ if __name__ == "__main__":
     mask_samples = 1 - mask_samples
     mask_samples = mask_samples.repeat(1, 3, 1, 1)
     img_samples = img_samples * mask_samples
+    for i in range(4):
+        save_img(img_samples[i].numpy(), './log/input_{}.png'.format(i))
     
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=True, num_workers=12)
     # Define pretrained model
@@ -137,11 +143,8 @@ if __name__ == "__main__":
             pred_fake_0 = discriminator(dis_fake0_dis_input)
             pred_fake_1 = discriminator(dis_fake1_dis_input)
             pred_real = discriminator(real_dis_input)
-    
-          
             # Compute loss
             loss_d = gan_loss(pred_fake_0, False, for_discriminator=True) + gan_loss(pred_fake_1, False, for_discriminator=True) + gan_loss(pred_real, True, for_discriminator=True)
-            
             
             loss_d.backward(retain_graph=True)
             discriminator_optimizer.step()
@@ -159,7 +162,7 @@ if __name__ == "__main__":
             gen_pred_fake_1 = discriminator(gen_fake1_dis_input)
             # GAN Loss
             loss_g = gan_loss(gen_pred_fake_0, target_is_real=True, for_discriminator=False) \
-                    + gan_loss(gen_pred_fake_1,  target_is_real=True, for_discriminator=False)
+                    + gan_loss(gen_pred_fake_1, target_is_real=True, for_discriminator=False)
             # Perceptual Loss
             loss_g = loss_g + 10.0 * preceptual_loss(fake0, original_imgs) \
                             + 10.0 * preceptual_loss(fake1, original_imgs)
