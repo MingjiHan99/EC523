@@ -142,12 +142,12 @@ if __name__ == "__main__":
             discriminator_optimizer.zero_grad()
             dis_fake0 = fake0.detach()
             dis_fake1 = fake1.detach()
-            dis_fake0_dis_input = torch.cat([hole_mask, dis_fake0], dim=1)
-            dis_fake1_dis_input = torch.cat([hole_mask, dis_fake1], dim=1)
+            dis_fake0_input = torch.cat([hole_mask, dis_fake0], dim=1)
+            dis_fake1_input = torch.cat([hole_mask, dis_fake1], dim=1)
             real_dis_input = torch.cat([hole_mask, imgs], dim=1)
             
-            pred_fake_0 = discriminator(dis_fake0_dis_input)
-            pred_fake_1 = discriminator(dis_fake1_dis_input)
+            pred_fake_0 = discriminator(dis_fake0_input)
+            pred_fake_1 = discriminator(dis_fake1_input)
             pred_real = discriminator(real_dis_input)
             # Compute loss
             loss_d = gan_loss(pred_fake_0, False, for_discriminator=True) + gan_loss(pred_fake_1, False, for_discriminator=True) + gan_loss(pred_real, True, for_discriminator=True)
@@ -162,10 +162,10 @@ if __name__ == "__main__":
             for p in discriminator.parameters():
                 p.requires_grad = False
             generator_optimizer.zero_grad()
-            gen_fake0_dis_input = torch.cat([hole_mask, fake0], dim=1)
-            gen_fake1_dis_input = torch.cat([hole_mask, fake1], dim=1)
-            gen_pred_fake_0 = discriminator(gen_fake0_dis_input)
-            gen_pred_fake_1 = discriminator(gen_fake1_dis_input)
+            gen_fake0_input = torch.cat([hole_mask, fake0], dim=1)
+            gen_fake1_input = torch.cat([hole_mask, fake1], dim=1)
+            gen_pred_fake_0 = discriminator(gen_fake0_input)
+            gen_pred_fake_1 = discriminator(gen_fake1_input)
             # GAN Loss
             loss_g = gan_loss(gen_pred_fake_0, target_is_real=True, for_discriminator=False) \
                     + gan_loss(gen_pred_fake_1, target_is_real=True, for_discriminator=False)

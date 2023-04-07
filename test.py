@@ -45,16 +45,15 @@ def test_pre_train_model(dataset):
 # Img and mask are in pytorch tensor format
 def test_gan_model(generator, pretrained_cnn, imgs, masks, ):
     result = pretrained_cnn.forward([imgs, masks])
-    z = torch.randn((imgs.shape[0], 256)).cuda()
-    with torch.no_grad():
-        fake = generator(z, result, masks)
-        b  = fake.shape[0]
-        for i in range(b):
-          #  
-         #   save_img(result[i].cpu().detach().numpy(), './log/input_{}_{}.png'.format(epoch, i))
-            img = fake[i].cpu().detach().numpy() 
-            concat = fake[i] * masks[i] + imgs[i] * (1 - masks[i])
-            save_img_tanh(img, './log/test_{}.png'.format(i))
+    # Try to generate 5 images
+    for k in range(5):
+        z = torch.randn((imgs.shape[0], 256)).cuda()
+        with torch.no_grad():
+            fake = generator(z, result, masks)
+            b  = fake.shape[0]
+            for i in range(b):
+                img = fake[i].cpu().detach().numpy() 
+                save_img_tanh(img, './log/test_{}_trial_{}.png'.format(i, k))
 if __name__ == "__main__":
      # Define dataset
     dataset_path = './data/celeba_small/'
