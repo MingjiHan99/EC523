@@ -168,9 +168,9 @@ if __name__ == "__main__":
             gen_pred_fake_0 = discriminator(gen_fake0_input)
             gen_pred_fake_1 = discriminator(gen_fake1_input)
             
-            num_D = len(gen_pred_fake_0)
+            num_of_output = len(gen_pred_fake_0)
             feature_matching_loss = torch.zeros((1, )).cuda()
-            for i in range(num_D):  
+            for i in range(num_of_output):  
                 num_intermediate_outputs = len(gen_pred_fake_0[i]) - 1
                 for j in range(num_intermediate_outputs): 
                     single_mactching_loss = l1_loss(
@@ -178,7 +178,7 @@ if __name__ == "__main__":
                     ) + l1_loss(
                         gen_pred_fake_1[i][j], pred_real[i][j].detach()
                     )
-                    feature_matching_loss += single_mactching_loss * 10.0 / num_D
+                    feature_matching_loss += single_mactching_loss * 10.0 / num_of_output
             # GAN Loss
             loss_g = feature_matching_loss
             loss_g = gan_loss(gen_pred_fake_0, target_is_real=True, for_discriminator=False) \
