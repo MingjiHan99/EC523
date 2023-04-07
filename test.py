@@ -11,7 +11,8 @@ import cv2
 import tqdm
 
 def save_img(tensor, name):
-    npimg = np.transpose(tensor, (1,2,0)) + 0.5
+    npimg = (np.transpose(tensor, (1,2,0)) + 1.0)  / 2.0 * 255
+    npimg =  np.minimum(np.maximum(npimg, 0), 255).astype(np.uint8)
     plt.imshow(npimg)
     plt.savefig(name)
     
@@ -20,6 +21,7 @@ def save_img_tanh(tensor, name):
     npimg =  np.minimum(np.maximum(npimg, 0), 255).astype(np.uint8)
     plt.imshow(npimg)
     plt.savefig(name)
+    
 
 def test_pre_train_model(dataset):
     img, mask = dataset[999]
@@ -45,16 +47,15 @@ def test_pre_train_model(dataset):
 # Img and mask are in pytorch tensor format
 def test_gan_model(generator, pretrained_cnn, imgs, masks, ):
     result = pretrained_cnn.forward([imgs, masks])
-    z = torch.randn((imgs.shape[0], 256)).cuda()
-    with torch.no_grad():
-        fake = generator(z, result, masks)
-        b  = fake.shape[0]
-        for i in range(b):
-          #  
-         #   save_img(result[i].cpu().detach().numpy(), './log/input_{}_{}.png'.format(epoch, i))
-            img = fake[i].cpu().detach().numpy() 
-            concat = fake[i] * masks[i] + imgs[i] * (1 - masks[i])
-            save_img_tanh(img, './log/test_{}.png'.format(i))
+    # Try to generate 5 images
+    for k in range(10):
+        z = torch.randn((imgs.shape[0], 256)).cuda()
+        with torch.no_grad():
+            fake = generator(z, result, masks)
+            b  = fake.shape[0]
+            for i in range(b):
+                img = fake[i].cpu().detach().numpy() 
+                save_img_tanh(img, './log/test_{}_trial_{}.png'.format(i, k))
 if __name__ == "__main__":
      # Define dataset
     dataset_path = './data/celeba_small/'
@@ -64,8 +65,8 @@ if __name__ == "__main__":
     dataset = Dataset('./data/celeba_small/', True, './data/mask/testing_mask_dataset/')
     img_samples = []
     mask_samples = []
-    for i in range(4):
-        img, mask = dataset[i]
+    for i in range(5):
+        img, mask = dataset[i + 23]
         img_samples.append(img.unsqueeze(0))
         mask_samples.append(mask.unsqueeze(0))
         
@@ -75,7 +76,7 @@ if __name__ == "__main__":
     mask_samples = 1 - mask_samples
     mask_samples = mask_samples.repeat(1, 3, 1, 1)
     img_samples = img_samples * mask_samples
-    for i in range(4):
+    for i in range(5):
         save_img(img_samples[i].numpy(), './log/input_{}.png'.format(i))
     
     ataloader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=True, num_workers=12)
@@ -83,7 +84,7 @@ if __name__ == "__main__":
     pretrained_cnn = PretrainedModel('./Face/2_net_EN.pth', './Face/2_net_DE.pth')
     # Define PDGAN
     generator = PDGANGenerator()
-    model_kv = torch.load('./model_backup/generator.pth')
+    model_kv = torch.load('./model_250/generator.pth')
     generator.load_state_dict(model_kv)
     generator = generator.cuda()
     test_gan_model(generator, pretrained_cnn, img_samples.cuda(), mask_samples.cuda())
