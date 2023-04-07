@@ -102,14 +102,14 @@ if __name__ == "__main__":
     preceptual_divsersity_loss = Diversityloss()
     preceptual_divsersity_loss = preceptual_divsersity_loss.cuda()
     # Training Parameters
-    epoch = 20
+    epochs = 100
     lr = 0.001
     current_lr = lr
     # Optimizer
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0005, betas=(0.0, 0.9))
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.002, betas=(0.0, 0.9))
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0005, betas=(0.5, 0.999))
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.002, betas=(0.5, 0.999))
     l1_loss = torch.nn.L1Loss()
-    for i in range(epoch):
+    for epoch in range(epochs):
         bar = tqdm(dataloader)
         for imgs, masks in bar:
             # Get the input images and their corresponding masks
@@ -170,16 +170,15 @@ if __name__ == "__main__":
             
             num_D = len(gen_pred_fake_0)
             feature_matching_loss = torch.zeros((1, )).cuda()
-            for i in range(num_D):  # for each discriminator
-                # last output is the final prediction, so we exclude it
+            for i in range(num_D):  
                 num_intermediate_outputs = len(gen_pred_fake_0[i]) - 1
-                for j in range(num_intermediate_outputs):  # for each layer output
-                    unweighted_loss = l1_loss(
+                for j in range(num_intermediate_outputs): 
+                    single_mactching_loss = l1_loss(
                         gen_pred_fake_0[i][j], pred_real[i][j].detach()
                     ) + l1_loss(
                         gen_pred_fake_1[i][j], pred_real[i][j].detach()
                     )
-                    feature_matching_loss += unweighted_loss * 10.0 / num_D
+                    feature_matching_loss += single_mactching_loss * 10.0 / num_D
             # GAN Loss
             loss_g = feature_matching_loss
             loss_g = gan_loss(gen_pred_fake_0, target_is_real=True, for_discriminator=False) \
@@ -202,4 +201,4 @@ if __name__ == "__main__":
         # Store model and test model
         torch.save(generator.state_dict(), './model/generator.pth')
         torch.save(discriminator.state_dict(), './model/discriminator.pth')
-        test_gan_model(generator, pretrained_cnn, img_samples.cuda(), mask_samples.cuda(), i)
+        test_gan_model(generator, pretrained_cnn, img_samples.cuda(), mask_samples.cuda(), epoch)
