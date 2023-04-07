@@ -259,5 +259,31 @@ class Diversityloss(nn.Module):
         )
         return diversity_loss
 
+def dialation_holes(hole_mask):
+    b, ch, h, w = hole_mask.shape
+    dilation_conv = nn.Conv2d(ch, ch, 3, padding=1, bias=False).to(hole_mask)
+    torch.nn.init.constant_(dilation_conv.weight, 1.0)
+    with torch.no_grad():
+        output_mask = dilation_conv(hole_mask)
+    updated_holes = output_mask != 0
+    return updated_holes.float()
 
 
+def TVloss(image, mask, method):
+    hole_mask = 1 - mask
+    dilated_holes = dialation_holes(hole_mask)
+    colomns_in_Pset = dilated_holes[:, :, :, 1:] * dilated_holes[:, :, :, :-1]
+    rows_in_Pset = dilated_holes[:, :, 1:, :] * dilated_holes[:, :, :-1:, :]
+    if method == "sum":
+        loss = torch.sum(
+            torch.abs(colomns_in_Pset * (image[:, :, :, 1:] - image[:, :, :, :-1]))
+        ) + torch.sum(
+            torch.abs(rows_in_Pset * (image[:, :, :1, :] - image[:, :, -1:, :]))
+        )
+    else:
+        loss = torch.mean(
+            torch.abs(colomns_in_Pset * (image[:, :, :, 1:] - image[:, :, :, :-1]))
+        ) + torch.mean(
+            torch.abs(rows_in_Pset * (image[:, :, :1, :] - image[:, :, -1:, :]))
+        )
+    return loss

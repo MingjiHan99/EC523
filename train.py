@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import torch 
 from pd_gan import PDGANGenerator, PDGANDiscriminator
-from pretrained_loss import GANLoss, Diversityloss, PerceptualLoss
+from pretrained_loss import GANLoss, Diversityloss, PerceptualLoss, TVloss
 from tqdm import tqdm
 from torch.nn import init
 def save_img(tensor, name):
@@ -43,9 +43,9 @@ def test_pre_train_model(dataset):
 def init_func(m):
     classname = m.__class__.__name__
     if hasattr(m, "weight") and ("Conv" in classname or "Linear" in classname):
-        init.normal(m.weight.data, 0.0, 0.02)
+        init.normal_(m.weight.data, 0.0, 0.02)
     if hasattr(m, "weight") and "BatchNorm2d" in classname:
-        init.normal(m.weight.data, 1.0, 0.02)
+        init.normal_(m.weight.data, 1.0, 0.02)
         init.constant(m.bias.data, 0.0)
 # Img and mask are in pytorch tensor format
 def test_gan_model(generator, pretrained_cnn, imgs, masks, epoch):
@@ -71,10 +71,10 @@ if __name__ == "__main__":
     img_samples = []
     mask_samples = []
     for i in range(4):
-        img, mask = dataset[i + 20]
+        img, mask = dataset[i + 14]
         img_samples.append(img.unsqueeze(0))
         mask_samples.append(mask.unsqueeze(0))
-        
+    
     img_samples = torch.cat(img_samples, dim = 0)
     mask_samples = torch.cat(mask_samples, dim = 0)
 
@@ -102,12 +102,13 @@ if __name__ == "__main__":
     preceptual_divsersity_loss = Diversityloss()
     preceptual_divsersity_loss = preceptual_divsersity_loss.cuda()
     # Training Parameters
-    epoch = 100
+    epoch = 20
     lr = 0.001
+    current_lr = lr
     # Optimizer
-    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0005, betas=(0.5, 0.999))
-    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.002, betas=(0.5, 0.999))
-    
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0005, betas=(0.0, 0.9))
+    discriminator_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.002, betas=(0.0, 0.9))
+    l1_loss = torch.nn.L1Loss()
     for i in range(epoch):
         bar = tqdm(dataloader)
         for imgs, masks in bar:
@@ -116,8 +117,8 @@ if __name__ == "__main__":
             masks = masks.cuda()
             masks = masks.repeat(1, 3, 1, 1)
             # Backup the original images and masks
-            original_imgs = imgs.detach().clone()
-            hole_mask = masks.detach().clone()
+            original_imgs = imgs.detach()
+            hole_mask = masks.detach()
             
             # Get the masked images
             masks = 1 - masks
@@ -144,13 +145,13 @@ if __name__ == "__main__":
             dis_fake1 = fake1.detach()
             dis_fake0_input = torch.cat([hole_mask, dis_fake0], dim=1)
             dis_fake1_input = torch.cat([hole_mask, dis_fake1], dim=1)
-            real_dis_input = torch.cat([hole_mask, imgs], dim=1)
+            real_dis_input = torch.cat([hole_mask, original_imgs], dim=1)
             
             pred_fake_0 = discriminator(dis_fake0_input)
             pred_fake_1 = discriminator(dis_fake1_input)
             pred_real = discriminator(real_dis_input)
             # Compute loss
-            loss_d = gan_loss(pred_fake_0, False, for_discriminator=True) + gan_loss(pred_fake_1, False, for_discriminator=True) + gan_loss(pred_real, True, for_discriminator=True)
+            loss_d = gan_loss(pred_fake_0, False, for_discriminator=True) + gan_loss(pred_fake_1, False, for_discriminator=True) + 2.0 * gan_loss(pred_real, True, for_discriminator=True)
             
             loss_d.backward(retain_graph=True)
             discriminator_optimizer.step()
@@ -166,7 +167,21 @@ if __name__ == "__main__":
             gen_fake1_input = torch.cat([hole_mask, fake1], dim=1)
             gen_pred_fake_0 = discriminator(gen_fake0_input)
             gen_pred_fake_1 = discriminator(gen_fake1_input)
+            
+            num_D = len(gen_pred_fake_0)
+            feature_matching_loss = torch.zeros((1, )).cuda()
+            for i in range(num_D):  # for each discriminator
+                # last output is the final prediction, so we exclude it
+                num_intermediate_outputs = len(gen_pred_fake_0[i]) - 1
+                for j in range(num_intermediate_outputs):  # for each layer output
+                    unweighted_loss = l1_loss(
+                        gen_pred_fake_0[i][j], pred_real[i][j].detach()
+                    ) + l1_loss(
+                        gen_pred_fake_1[i][j], pred_real[i][j].detach()
+                    )
+                    feature_matching_loss += unweighted_loss * 10.0 / num_D
             # GAN Loss
+            loss_g = feature_matching_loss
             loss_g = gan_loss(gen_pred_fake_0, target_is_real=True, for_discriminator=False) \
                     + gan_loss(gen_pred_fake_1, target_is_real=True, for_discriminator=False)
             # Perceptual Loss
@@ -174,12 +189,16 @@ if __name__ == "__main__":
                             + 10.0 * preceptual_loss(fake1, original_imgs)) 
             # Perceptual Diversity Loss
             loss_g = loss_g + 1.0 / (preceptual_divsersity_loss(fake0 * hole_mask, fake1 * hole_mask) + 1 * 1e-5)
-            loss_g = loss_g / 3.0
+            
+            # TV Loss
+            comp_0 = hole_mask * fake0 + masks * original_imgs
+            comp_1 = hole_mask * fake1 + masks * original_imgs
+            loss_g += TVloss(comp_0, masks, 'mean') + TVloss(comp_1, masks, 'mean')
+            
+            loss_g = loss_g / 5.0
             loss_g.backward()
             generator_optimizer.step()
             bar.set_postfix(G_Loss=loss_g.item(), D_Loss=loss_d.item())
-            
-            
         # Store model and test model
         torch.save(generator.state_dict(), './model/generator.pth')
         torch.save(discriminator.state_dict(), './model/discriminator.pth')
