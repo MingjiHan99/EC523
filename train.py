@@ -1,17 +1,15 @@
 from data import Dataset
 from pretrained_cnn import PretrainedModel
 from matplotlib import pyplot as plt
-import torchvision.transforms as T
 import numpy as np
 import torch 
 from pd_gan import PDGANGenerator, PDGANDiscriminator
-from PIL import Image
 from pretrained_loss import GANLoss, Diversityloss, PerceptualLoss
-import cv2
 from tqdm import tqdm
 from torch.nn import init
 def save_img(tensor, name):
-    npimg = np.transpose(tensor, (1,2,0)) + 0.5
+    npimg = (np.transpose(tensor, (1,2,0)) + 1.0) / 2.0 * 255
+    npimg =  np.minimum(np.maximum(npimg, 0), 255).astype(np.uint8)
     plt.imshow(npimg)
     plt.savefig(name)
     
@@ -46,7 +44,9 @@ def init_func(m):
     classname = m.__class__.__name__
     if hasattr(m, "weight") and ("Conv" in classname or "Linear" in classname):
         init.normal(m.weight.data, 0.0, 0.02)
-    
+    if hasattr(m, "weight") and "BatchNorm2d" in classname:
+        init.normal(m.weight.data, 1.0, 0.02)
+        init.constant(m.bias.data, 0.0)
 # Img and mask are in pytorch tensor format
 def test_gan_model(generator, pretrained_cnn, imgs, masks, epoch):
     result = pretrained_cnn.forward([imgs, masks])
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     img_samples = []
     mask_samples = []
     for i in range(4):
-        img, mask = dataset[i + 500]
+        img, mask = dataset[i + 20]
         img_samples.append(img.unsqueeze(0))
         mask_samples.append(mask.unsqueeze(0))
         
