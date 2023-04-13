@@ -71,7 +71,8 @@ if __name__ == "__main__":
     img_samples = []
     mask_samples = []
     for i in range(4):
-        img, mask = dataset[i + 14]
+        img, mask = dataset[i + 250]
+
         img_samples.append(img.unsqueeze(0))
         mask_samples.append(mask.unsqueeze(0))
     
