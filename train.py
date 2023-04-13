@@ -87,7 +87,7 @@ if __name__ == "__main__":
     
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=8, shuffle=True, num_workers=12)
     # Define pretrained model
-    pretrained_cnn = PretrainedModel('./Face/2_net_EN.pth', './Face/2_net_DE.pth')
+    pretrained_cnn = PretrainedModel(encoder_path, decoder_path)
     # Define PDGAN
     generator = PDGANGenerator()
     generator = generator.cuda()
