@@ -10,7 +10,7 @@ from functools import reduce
 class VGG16(torch.nn.Module):
     def __init__(self):
         super(VGG16, self).__init__()
-        features = models.vgg16(weights=models.VGG16_Weights.DEFAULT).features
+        features = models.vgg16(pretrained=True).features
         self.relu1_1 = torch.nn.Sequential()
         self.relu1_2 = torch.nn.Sequential()
 
