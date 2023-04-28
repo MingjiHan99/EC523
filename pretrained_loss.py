@@ -76,40 +76,41 @@ class VGG16(torch.nn.Module):
             param.requires_grad = False
 
     def forward(self, x):
-        relu1_1 = self.relu1_1(x)
-        relu1_2 = self.relu1_2(relu1_1)
+        with torch.no_grad():
+            relu1_1 = self.relu1_1(x)
+            relu1_2 = self.relu1_2(relu1_1)
 
-        relu2_1 = self.relu2_1(relu1_2)
-        relu2_2 = self.relu2_2(relu2_1)
+            relu2_1 = self.relu2_1(relu1_2)
+            relu2_2 = self.relu2_2(relu2_1)
 
-        relu3_1 = self.relu3_1(relu2_2)
-        relu3_2 = self.relu3_2(relu3_1)
-        relu3_3 = self.relu3_3(relu3_2)
-        max_3 = self.max3(relu3_3)
+            relu3_1 = self.relu3_1(relu2_2)
+            relu3_2 = self.relu3_2(relu3_1)
+            relu3_3 = self.relu3_3(relu3_2)
+            max_3 = self.max3(relu3_3)
 
-        relu4_1 = self.relu4_1(max_3)
-        relu4_2 = self.relu4_2(relu4_1)
-        relu4_3 = self.relu4_3(relu4_2)
+            relu4_1 = self.relu4_1(max_3)
+            relu4_2 = self.relu4_2(relu4_1)
+            relu4_3 = self.relu4_3(relu4_2)
 
-        relu5_1 = self.relu5_1(relu4_3)
-        relu5_2 = self.relu5_1(relu5_1)
-        relu5_3 = self.relu5_1(relu5_2)
-        out = {
-            "relu1_1": relu1_1,
-            "relu1_2": relu1_2,
-            "relu2_1": relu2_1,
-            "relu2_2": relu2_2,
-            "relu3_1": relu3_1,
-            "relu3_2": relu3_2,
-            "relu3_3": relu3_3,
-            "max_3": max_3,
-            "relu4_1": relu4_1,
-            "relu4_2": relu4_2,
-            "relu4_3": relu4_3,
-            "relu5_1": relu5_1,
-            "relu5_2": relu5_2,
-            "relu5_3": relu5_3,
-        }
+            relu5_1 = self.relu5_1(relu4_3)
+            relu5_2 = self.relu5_1(relu5_1)
+            relu5_3 = self.relu5_1(relu5_2)
+            out = {
+                "relu1_1": relu1_1,
+                "relu1_2": relu1_2,
+                "relu2_1": relu2_1,
+                "relu2_2": relu2_2,
+                "relu3_1": relu3_1,
+                "relu3_2": relu3_2,
+                "relu3_3": relu3_3,
+                "max_3": max_3,
+                "relu4_1": relu4_1,
+                "relu4_2": relu4_2,
+                "relu4_3": relu4_3,
+                "relu5_1": relu5_1,
+                "relu5_2": relu5_2,
+                "relu5_3": relu5_3,
+            }
         return out
 
 class PerceptualLoss(nn.Module):
