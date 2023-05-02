@@ -1,5 +1,3 @@
-# Copyright 2020 by Gongfan Fang, Zhejiang University.
-# All rights reserved.
 import warnings
 
 import torch
@@ -314,3 +312,5 @@ class MS_SSIM(torch.nn.Module):
             weights=self.weights,
             K=self.K,
         )
+    
+#reference:https://github.com/VainF/pytorch-msssim
