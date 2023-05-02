@@ -3,8 +3,13 @@
 EC523 Project
 
 Image Impainting using PD-GAN (CVPR 2021)
+### Install Dependencies
 
-# Training:
+```
+pip3 install -r requirements.txt
+```
+
+### Training:
 
 1. Download the image dataset: http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html
 
@@ -34,9 +39,21 @@ decoder_path = 'your own path'
 python3 train.py
 ```
 
-# Test:
+### Test:
 
 ```
+python3 test.py
+```
+
+### Metrics
+#### PSNR
+```
+python3 psnr.py
+```
+
+#### SSIM
+```
+cd ssim
 python3 test.py
 ```
 
