@@ -66,7 +66,7 @@ if __name__ == "__main__":
     img_samples = []
     mask_samples = []
     for i in range(5):
-        img, mask = dataset[i + 99]
+        img, mask = dataset[i + 32]
         img_samples.append(img.unsqueeze(0))
         mask_samples.append(mask.unsqueeze(0))
         
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     pretrained_cnn = PretrainedModel(encoder_path, decoder_path)
     # Define PDGAN
     generator = PDGANGenerator()
-    model_kv = torch.load('./model_250/generator.pth')
+    model_kv = torch.load('./model_500/generator.pth')
     generator.load_state_dict(model_kv)
     generator = generator.cuda()
     test_gan_model(generator, pretrained_cnn, img_samples.cuda(), mask_samples.cuda())
