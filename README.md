@@ -57,6 +57,13 @@ cd ssim
 python3 test.py
 ```
 
+#### FID
+
+```
+pip install pytorch-fid
+python -m pytorch_fid [path/to/real_images] [path/to/test_images]
+```
+
 ### Acknowledgement
 We reuse the following codebases:  
 The code and model of Pretrained Encoder-Decoder for building PD-GAN are adapted from the following sources:  
